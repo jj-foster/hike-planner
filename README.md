@@ -10,8 +10,9 @@ A paint function is implemented so the path can be easily segmented into differe
 
 ### Installation
 1. Install python 3.9
-2. Install packages in requirements.txt
-3. Run hike_data_GUI.py
+3. Install packages in requirements.txt
+   >pip install -r requirements.txt
+4. Run hike_data_GUI.py
 
 ### Features
 - Plots hike path on topographical map.
