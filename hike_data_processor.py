@@ -12,10 +12,11 @@ from PIL import Image
 from tqdm import tqdm
 
 class Path():
-    DEFAULT_ZOOM=13 #   for running without UI
-    TILE_SIZE=256   #   map tile size in px
+    DEFAULT_ZOOM=13
+    TILE_SIZE=256
 
-    def __init__(self,name=None):
+    def __init__(self,file,name=None):
+        self.file=file
         self.name=name
         self.tileServers=(
             "https://c.tile.opentopomap.org", #   VERY slow on occasion 
@@ -23,18 +24,18 @@ class Path():
             "https://a.tile-cyclosm.openstreetmap.fr/cyclosm" #   Fast, has topography, weird colouring
         )
 
-        return
+        self.input()
 
-    def input(self,file):
+    def input(self):
         """Detects input file format & calls relevant import function"""
-        self.filetype=os.path.splitext(file)[1]
+        self.filetype=os.path.splitext(self.file)[1]
         if self.filetype==".gpx":
-            coordinates,self.name=self.gpxImport(file)
+            coordinates,self.name=self.gpxImport(self.file)
         if self.filetype==".kmz":
-            kml=self.kmzImport(file)
+            kml=self.kmzImport(self.file)
             coordinates,self.name=self.kmlImport(kml)
         if self.filetype==".kml":
-            coordinates,self.name=self.kmlImport(file)
+            coordinates,self.name=self.kmlImport(self.file)
 
         self.hikeData=pd.DataFrame(data=coordinates,columns=['lat','lon'])
         self.hikeData['lat_rad']=self.hikeData['lat'].apply(np.radians)
@@ -323,8 +324,7 @@ class Path():
 
 if __name__=="__main__":
     os.system('cls')
-    path=Path()
-    path.input('gpx.gpx')
+    path=Path('gpx.gpx')
     #pathPlot=path.elevation()
     #print(path.coordinates)
     print(path.hikeData)
