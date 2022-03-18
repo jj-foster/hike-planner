@@ -402,7 +402,7 @@ if __name__ == '__main__':
     os.system('cls')
 
     parser=ArgumentParser()
-    parser.add_argument('input',help='Input gps path file (gpx, kml, kmz).')
+    parser.add_argument('input',help='Path to input gps file (gpx, kml, kmz).')
     args=parser.parse_args()
 
     input_file=args.input
