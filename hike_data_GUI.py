@@ -1,4 +1,3 @@
-from calendar import day_abbr
 from tkinter import Tk, ttk, Button, Scale, Canvas, Frame, Label, StringVar, Entry,filedialog
 from PIL import ImageTk
 import os
