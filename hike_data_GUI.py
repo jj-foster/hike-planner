@@ -1,13 +1,13 @@
 from calendar import day_abbr
 from tkinter import Tk, ttk, Button, Scale, Canvas, Frame, Label, StringVar, Entry,filedialog
-from PIL import Image, ImageTk
+from PIL import ImageTk
 import os
 import numpy as np
 import pandas as pd
-import random
 from colorutils import hsv_to_hex
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from scipy import spatial
+from argparse import ArgumentParser
 
 import hike_data_processor
 
@@ -74,14 +74,6 @@ class Paint(object):
         #   <tile frame selection>
         tileFrame=Frame(left,bd=3)
         tileFrame.grid(row=0,column=0,sticky='nsew')
-
-            #   <file input>
-        file_input_button=Button(tileFrame,text='Open file',command=self.select_file)
-        file_input_button.grid(row=0,column=0,sticky='w')
-
-        self.file_input_entry=Entry(tileFrame)
-        self.file_input_entry.grid(row=0,column=1,sticky='w')
-            #   </file input>
 
         tileLabel=Label(tileFrame,text='Map tile server (download speed may vary):')
         tileLabel.grid(row=0,column=2)
@@ -160,6 +152,7 @@ class Paint(object):
         options=Frame(right,bd=3,relief='groove')
         options.grid(row=2,column=0,sticky='sew')
         options.columnconfigure(0,weight=1)
+        right.rowconfigure(2,weight=1)
 
         rest_mile=Label(options,text='Rest per mile (mins): ')
         rest_mile.grid(row=0,column=0)
@@ -183,8 +176,8 @@ class Paint(object):
         self.day_disp.column('time',width=50)
 
         self.day_disp.heading('day',text='Day')
-        self.day_disp.heading('dist',text='Distance\n(miles)\n')
-        self.day_disp.heading('time',text='Time\n(hrs)\n')
+        self.day_disp.heading('dist',text='Distance\n(miles)')
+        self.day_disp.heading('time',text='Time\n(hrs)')
         #   </day data>
 
         return    
@@ -249,13 +242,19 @@ class Paint(object):
 
             #   Recolours lines
             if self.lineList!=[]:
-                for line in self.lineList:
+                del_lines=[]
+                for i,line in enumerate(self.lineList):
                     line_day=int(self.canvas.gettags(line)[1])  #   gets day tag from line on canvas
+   
                     if line_day>=days:  #   if the line is for a day that has been removed
-                        self.canvas.delete(line)
-                        self.lineList.remove(line)
+                        del_lines.append(line)
+
                     if line_day==day:
                         self.canvas.itemconfig(line,fill=self.colour_list[day]) #   recolours line
+
+                for line in del_lines:
+                    self.canvas.delete(line)
+                    self.lineList.remove(line)
 
         return
 
@@ -344,13 +343,11 @@ class Paint(object):
         for i,line in enumerate(self.lineList):
             if i==0:    #   start coordinate
                 x=self.canvas.coords(self.lineList[i])[0]
-                #y=self.canvas.winfo_height()-self.canvas.coords(self.lineList[i])[1]
                 y=self.canvas.coords(self.lineList[i])[1]
 
                 paintCoords.append([x,y])
             else:
                 x=self.canvas.coords(line)[2]
-                #y=self.canvas.winfo_height()-self.canvas.coords(line)[3]
                 y=self.canvas.coords(line)[3]
 
                 paintCoords.append([x,y])   #   gets end coordinate of each line
@@ -372,15 +369,13 @@ class Paint(object):
 
     def calcDays(self):
         paint_data=self.getPaintData()
-        #print(paint_data)
-        #print(f"\n{self.gps_trace}")
+
         gps_day=[]
         for i,coord in enumerate(self.gps_trace):
             distance,index=self.find_neighbour(coord,paint_data[['x','y']]) #   finds 
             paint_radius=paint_data.iloc[index]['radius']
 
             if distance<=paint_radius:
-                #print(f"{paint_data.iloc[index][['x','y']]}|{coord}")
                 gps_day.append(int(paint_data.iloc[index]['day']))
             else:
                 gps_day.append(pd.NA)
@@ -407,7 +402,11 @@ class Paint(object):
 if __name__ == '__main__':
     os.system('cls')
 
-    input_file="Dartmoor 2.kmz"
+    parser=ArgumentParser()
+    parser.add_argument('input',help='Input gps path file (gpx, kml, kmz).')
+    args=parser.parse_args()
+
+    input_file=args.input
     path=hike_data_processor.Path(input_file)
     ui=Paint(path)
     ui.start()
