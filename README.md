@@ -6,7 +6,7 @@ Accurately planning a hike/trek can be difficult - a big reason is that timings 
 The UI accepts a gps path file input (gpx, kml/kmz) and plots this on a map, for which tiles are downloaded from openstreetmaps. Altitudes along the path are downloaded from opentopodata and are used to plot the elevation profile, which is combined with the calculated walking speeds. Some smoothing is applied to the speed datapoints to account for unrealistic sudden jumps in terrain gradient (opentopodata is only available for 30m resolution).
 A paint function is implemented so the path can be easily segmented into different days - each day has the total walking distance and time calculated.
 
-![screenshot](https://user-images.githubusercontent.com/79290428/157776701-76731c42-f395-44a4-b549-1a682448f0b6.png)
+![screenshot](https://user-images.githubusercontent.com/79290428/159019702-3fd23779-31c4-4a3d-96ea-2eed84bd637f.png)
 
 ### Installation
 1. Install latest python (tested on 3.9.5)
