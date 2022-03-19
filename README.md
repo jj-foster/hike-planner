@@ -12,8 +12,7 @@ A paint function is implemented so the path can be easily segmented into differe
 1. Install python (tested on 3.9.5)
 2. Install packages in requirements.txt
    >pip install -r requirements.txt
-3. Download code
-4. Run hike_data_GUI.py from console. For help:
+3. Run hike_data_GUI.py from console. For help:
    >py ./hike_data_GUI.py -h
 
 ### Features
