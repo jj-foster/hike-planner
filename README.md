@@ -1,4 +1,4 @@
-# Hike Time Calculator
+# Hike Planner
 Maps GPS file &amp; calculates walking distance and time. Hike can be segmented by painting over path with different days.
 
 Accurately planning a hike/trek can be difficult - a big reason is that timings are vague. A one speed fits all approach is too conservative and is not appropriate when traversing mountainous or other difficult terrain. To combat this, I collected pace data from strava for different terrain gradients and compiled a dataset of my walking speeds. This is what drives the calculator.
