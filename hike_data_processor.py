@@ -10,13 +10,15 @@ from matplotlib import pyplot as plt
 from io import BytesIO
 from PIL import Image
 from tqdm import tqdm
+import json
 
 class Path():
     DEFAULT_ZOOM=13
     TILE_SIZE=256
 
-    def __init__(self,file,name=None):
-        self.file=file
+    def __init__(self,gps_file,speed_file,name=None):
+        self.gps_file=gps_file
+        self.speed_file=speed_file
         self.name=name
         self.tileServers=(
             "https://c.tile.opentopomap.org", #   VERY slow on occasion 
@@ -28,14 +30,14 @@ class Path():
 
     def input(self):
         """Detects input file format & calls relevant import function"""
-        self.filetype=os.path.splitext(self.file)[1]
-        if self.filetype==".gpx":
-            coordinates,self.name=self.gpxImport(self.file)
-        if self.filetype==".kmz":
-            kml=self.kmzImport(self.file)
+        self.gps_filetype=os.path.splitext(self.gps_file)[1]
+        if self.gps_filetype==".gps":
+            coordinates,self.name=self.gpsImport(self.gps_file)
+        if self.gps_filetype==".kmz":
+            kml=self.kmzImport(self.gps_file)
             coordinates,self.name=self.kmlImport(kml)
-        if self.filetype==".kml":
-            coordinates,self.name=self.kmlImport(self.file)
+        if self.gps_filetype==".kml":
+            coordinates,self.name=self.kmlImport(self.gps_file)
 
         self.hikeData=pd.DataFrame(data=coordinates,columns=['lat','lon'])
         self.hikeData['lat_rad']=self.hikeData['lat'].apply(np.radians)
@@ -80,8 +82,8 @@ class Path():
 
         return coordinates, name
 
-    def gpxImport(self,file):
-        """Reads gpx file. Gets path name, lat & lon coordinates. gpx files are in xml format"""
+    def gpsImport(self,file):
+        """Reads gps file. Gets path name, lat & lon coordinates. gps files are in xml format"""
         root=ET.parse(file).getroot()
         namespace=root.tag.split('}')[0]+'}'
 
@@ -109,8 +111,13 @@ class Path():
             response=requests.get(url+params)
 
             results=response.json()['results']
-            for result in results:
-                elevations.append(float(result['elevation']))
+            for i,result in enumerate(results):
+                alt=result['elevation']
+                if alt!=None:
+                    elevations.append(float(result['elevation']))
+                else:
+                    elevations.append(elevations[i-1])
+                    
             
             time.sleep(0.34) #   3 calls per second max
         elevations=np.array(elevations)
@@ -121,7 +128,7 @@ class Path():
 
     def calcDist(self):
         """Calculates distance between coordinates."""
-        dist=[] #   UNITS: miles
+        dist=[] #   UNITS: km
         distSum=[]
         for i,row in self.hikeData.iterrows():
             if i==0:
@@ -134,7 +141,7 @@ class Path():
             lon0=self.hikeData['lon_rad'][i-1]
             lon1=self.hikeData['lon_rad'][i]
 
-            d=2*6371*np.arcsin(np.sqrt((np.sin((lat1-lat0)/2)**2+np.cos(lat0)*np.cos(lat1)*np.sin((lon1-lon0)/2)**2)))/1.6  #   equation from wikipedia somewhere
+            d=2*6371*np.arcsin(np.sqrt((np.sin((lat1-lat0)/2)**2+np.cos(lat0)*np.cos(lat1)*np.sin((lon1-lon0)/2)**2)))  #   equation from wikipedia somewhere
             dist.append(float(d))
             distSum.append(float(distSum[i-1]+d))
 
@@ -161,11 +168,15 @@ class Path():
 
     def calcSpeed(self):
         """Calculates walking speed according to slope."""
-        posGrad=-0.0469 #   from linear curve fitted to strava data
-        negGrad=0.0265
-        neutral=2.7 #   mph
+        
+        with open(self.speed_file,'r') as f:
+            speed_data=json.load(f)
+        
+        posGrad=speed_data["pos"] #   from linear curve fitted to strava data
+        negGrad=speed_data["neg"]
+        neutral=speed_data["neutral"] #   kph
 
-        speed=[]    #   UNITS: mph
+        speed=[]    #   UNITS: kph
         for i,row in self.hikeData.iterrows():
             if i==0:
                 speed.append(0)
@@ -181,7 +192,7 @@ class Path():
             speed.append(float(v))
         
         #smoothes speed data
-        box_pts=4   #   colects 4 points to 1
+        box_pts=8   #   colects 4 points to 1
         box=np.ones(box_pts)/box_pts
         speed_smooth=list(np.convolve(speed[1:],box,mode='same'))
         speed_smooth[0]=speed[1]
@@ -206,16 +217,17 @@ class Path():
         """Plots elevation. Returns matplotlib pyplot object."""
         fig,ax=plt.subplots(figsize=(10,3))
         ax.plot(self.hikeData['distSum'][1:],self.hikeData['alt'][1:],color='k',linewidth=1,label="Altitude")
-        ax.set_xlabel("Total Distance (miles)")
+        ax.set_xlabel("Total Distance (km)")
         ax.set_ylabel("Altitude (m)")
 
         ax2=ax.twinx()
-        #ax2.plot(self.hikeData['distSum'][1:],self.hikeData['speed'][1:],color='b',linewidth=1)
         ax2.plot(self.hikeData['distSum'][1:],self.hikeData['speed_smooth'][1:],color='r',linewidth=1,label="Walking Speed")
-        ax2.set_ylabel("Walking Speed (mph)")
+        ax2.set_ylabel("Speed (kph)")
 
         fig.tight_layout()
         ax2.yaxis.label.set_color('r')
+
+        #self.hikeData.to_csv('hike_data.csv')
 
         return fig
 
@@ -305,12 +317,8 @@ class Path():
         ax.set_aspect(self.aspect_ratio) #   idk why but when transforming to lon/lat the aspect ratio is messed up - this is a botch fix
         ax.plot(self.hikeData['lon'],self.hikeData['lat'],color='r',linewidth=2)
         
-        #ax.set_ylim(bot,top)
-        #ax.set_xlim(left,right)
         ax.set_xlabel('Longitude (deg)')
         ax.set_ylabel('Latitude (deg)')
-
-        #fig.tight_layout()
 
         return plt
 
@@ -321,14 +329,3 @@ class Path():
         day_data=day_data.groupby(by=['day'],as_index=False).sum()[['day','dist','time']]
 
         return day_data
-
-if __name__=="__main__":
-    os.system('cls')
-    path=Path('gpx.gpx')
-    #pathPlot=path.elevation()
-    #print(path.coordinates)
-    print(path.hikeData)
-    img=path.getMap(tile_server=2,zoom=13)
-    img.show()
-    #map_plot=path.plotMap(img)
-    #plt.show()
