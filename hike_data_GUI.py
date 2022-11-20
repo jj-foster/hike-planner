@@ -13,13 +13,13 @@ import hike_data_processor
 class Paint(object):
 
     DEFAULT_PEN_SIZE = 5.0
-    MAX_WIDTH=1000
-    MAX_HEIGHT=500
+    MAX_WIDTH=700
+    MAX_HEIGHT=300
     DEFAULT_DAYS=1
     MAX_DAYS=30
     DEFAULT_ZOOM=9
     DEFAULT_SERVER=2
-    DEFAULT_REST_MILE=10
+    DEFAULT_REST_KM=10
     DEFAULT_REST_LUNCH=60
 
     def __init__(self,path):
@@ -153,12 +153,12 @@ class Paint(object):
         options.columnconfigure(0,weight=1)
         right.rowconfigure(2,weight=1)
 
-        rest_mile=Label(options,text='Rest per mile (mins): ')
-        rest_mile.grid(row=0,column=0)
-        self.rest_mile_entry=Entry(options,width=5)
-        self.rest_mile_entry.grid(row=0,column=1)
+        rest_km=Label(options,text='Rest per km (mins): ')
+        rest_km.grid(row=0,column=0)
+        self.rest_km_entry=Entry(options,width=5)
+        self.rest_km_entry.grid(row=0,column=1)
 
-        rest_lunch=Label(options,text='Rest for Lunch (mins): ')
+        rest_lunch=Label(options,text='Additional rest (mins): ')
         rest_lunch.grid(row=1,column=0)
         self.rest_lunch_entry=Entry(options,width=5)
         self.rest_lunch_entry.grid(row=1,column=1)
@@ -175,7 +175,7 @@ class Paint(object):
         self.day_disp.column('time',width=50)
 
         self.day_disp.heading('day',text='Day')
-        self.day_disp.heading('dist',text='Distance\n(miles)')
+        self.day_disp.heading('dist',text='Distance\n(km)')
         self.day_disp.heading('time',text='Time\n(hrs)')
         #   </day data>
 
@@ -199,7 +199,7 @@ class Paint(object):
         self.day_input.insert(0,str(self.DEFAULT_DAYS))
         self.update_day_buttons(self.DEFAULT_DAYS)
         self.rest_lunch_entry.insert(0,str(self.DEFAULT_REST_LUNCH))
-        self.rest_mile_entry.insert(0,str(self.DEFAULT_REST_MILE))
+        self.rest_km_entry.insert(0,str(self.DEFAULT_REST_KM))
         self.colour=self.colour_list[0]
         self.day=0
 
@@ -395,17 +395,19 @@ class Paint(object):
         for index,row in day_data.iterrows():
             self.day_disp.insert('','end',values=(int(row['day']+1),
                                                 round(row['dist'],1),
-                                                round(row['time']+row['dist']*float(self.rest_mile_entry.get())/60+float(self.rest_lunch_entry.get())/60,1)
+                                                round(row['time']+row['dist']*float(self.rest_km_entry.get())/60+float(self.rest_lunch_entry.get())/60,1)
                                                 ))
 
 if __name__ == '__main__':
     os.system('cls')
 
     parser=ArgumentParser()
-    parser.add_argument('input',help='Path to input gps file (gpx, kml, kmz).')
+    parser.add_argument('gps_path',help='Input gps path file (gpx, kml, kmz).')
+    parser.add_argument('speed_data',help='Speed (kph) against gradient data (.json)')
     args=parser.parse_args()
 
-    input_file=args.input
-    path=hike_data_processor.Path(input_file)
+    gps_file=args.gps_path
+    speed_file=args.speed_data
+    path=hike_data_processor.Path(gps_file, speed_file)
     ui=Paint(path)
     ui.start()
